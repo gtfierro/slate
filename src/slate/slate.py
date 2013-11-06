@@ -2,6 +2,7 @@ from StringIO import StringIO
 
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfinterp import PDFResourceManager
 from pdfminer.pdfinterp import PDFPageInterpreter as PI
 from pdfminer.pdfdevice import PDFDevice
@@ -31,19 +32,20 @@ class PDFPageInterpreter(PI):
         self.device.end_page(page)
         return self.device.outfp.getvalue()
 
+class O(object): pass
+
 class PDF(list):
     def __init__(self, file, password='', just_text=1):
         self.parser = PDFParser(file)
-        self.doc = PDFDocument()
+        self.doc = PDFDocument(self.parser)
         self.parser.set_document(self.doc)
-        self.doc.set_parser(self.parser)
         self.doc.initialize(password)
         if self.doc.is_extractable:
             self.resmgr = PDFResourceManager()
             self.device = TextConverter(self.resmgr, outfp=StringIO())
             self.interpreter = PDFPageInterpreter(
                self.resmgr, self.device)
-            for page in self.doc.get_pages():
+            for page in PDFPage.get_pages(file, [], maxpages=0, password='', caching=True, check_extractable=True):
                 self.append(self.interpreter.process_page(page))
             self.metadata = self.doc.info
         if just_text:
